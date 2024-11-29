@@ -27,7 +27,7 @@ def index():
         # Extract relevant information
         bucket = event['bucket']
         name = event['name']
-        image_url = f"gs://{bucket}/{name}"
+        image_url = f"https://storage.googleapis.com/{bucket}/{name}"
         
         response_data = {
             'image_url': image_url,
