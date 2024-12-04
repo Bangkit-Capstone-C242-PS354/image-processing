@@ -274,7 +274,7 @@ def image_processing(image_path):
 
     # Membersihkan hasil ekstraksi data
     cleaned_result = clean_data(receipt_data)
-    print(cleaned_result)  # Verifikasi bahwa cleaned_result sudah didefinisikan
+    # print(cleaned_result)  # Verifikasi bahwa cleaned_result sudah didefinisikan
 
 
     if len(image_data.shape) == 3:  # If the image has 3 dimensions (e.g., RGB)
@@ -315,3 +315,9 @@ def image_processing(image_path):
 
     return result_json
 
+def main():
+    image_path = "contoh-image.jpg"
+    image_processing(image_path)
+
+if __name__ == "__main__":
+    main()
