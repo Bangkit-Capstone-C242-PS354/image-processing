@@ -1,6 +1,7 @@
 import base64
 import json
 from flask import Flask, request
+from model import image_processing
 
 app = Flask(__name__)
 
