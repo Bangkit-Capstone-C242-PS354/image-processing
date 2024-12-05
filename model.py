@@ -8,6 +8,9 @@ import json
 import pickle
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.models import load_model
+import warnings
+
+warnings.filterwarnings('ignore', category=UserWarning, message='Neither CUDA nor MPS are available.*')
 
 class EasyReceiptOCR:
     def __init__(self, lang=['en']):
@@ -261,42 +264,45 @@ def clean_data(data):
             })
     return cleaned_data
 
-def image_processing(image_path):
-    # Contoh penggunaan EasyReceiptOCR
-    ocr = EasyReceiptOCR(['en', 'id'])  # Menambahkan bahasa yang diperlukan, misalnya ['en', 'id']
+def image_processing(image: Image.Image):
+    """
+    Process receipt image and extract relevant information.
     
-    # Membaca gambar
-    image = Image.open(image_path)
-    image_data = np.array(image)  # Convert to NumPy array
+    Args:
+        image: PIL Image object
+    Returns:
+        dict: Extracted receipt data including total_value, tax_value, and payment_method
+    """
+    ocr = EasyReceiptOCR(['en', 'id'])
+    
+    # Convert PIL Image to NumPy array
+    image_data = np.array(image)
 
-    # Ekstraksi teks dan lokasi
+    # Extract text and location
     easy_results, receipt_data, visualization_image = ocr.extract_text_and_location(image_data)
 
-    # Membersihkan hasil ekstraksi data
-    cleaned_result = clean_data(receipt_data)
-    # print(cleaned_result)  # Verifikasi bahwa cleaned_result sudah didefinisikan
-
-
-    if len(image_data.shape) == 3:  # If the image has 3 dimensions (e.g., RGB)
-        image_height, image_width, _ = image_data.shape  # Ignore the channels dimension
+    # Get image dimensions for normalization
+    if len(image_data.shape) == 3:
+        image_height, image_width, _ = image_data.shape
     else:
-        image_height, image_width = image_data.shape  # For grayscale images, only height and width
+        image_height, image_width = image_data.shape
     image_size = {'width': image_width, 'height': image_height}
 
-    # Load the models
+    # Clean and process the extracted data
+    cleaned_result = clean_data(receipt_data)
+
+    # Load models and encoders
     model_stage1 = load_model("model_stage1.h5")
-    model_stage2 = load_model("model_stage2.h5")  
-    # Load tokenizers and label encoders
+    model_stage2 = load_model("model_stage2.h5")
+    
     with open("char_to_idx.pkl", "rb") as file:
         char_to_idx = pickle.load(file)
-
     with open("label_encoder_stage1.pkl", "rb") as file:
         label_encoder_stage1 = pickle.load(file)
-
     with open("label_encoder_stage2.pkl", "rb") as file:
         label_encoder_stage2 = pickle.load(file)
 
-    # Prediksi menggunakan hasil yang sudah dibersihkan
+    # Make predictions
     predicted_results = predict_stage1_and_stage2(
         input_data=cleaned_result,
         model_stage1=model_stage1,
@@ -307,17 +313,12 @@ def image_processing(image_path):
         image_size=image_size
     )
 
-    # Menggunakan fungsi untuk menghasilkan JSON
-    result_json = extract_text_values(predicted_results)
+    # Extract and return final results
+    return extract_text_values(predicted_results)
 
-    # Cetak hasil dalam format JSON
-    print(json.dumps(result_json, indent=4))
+# def main():
+#     image_path = "contoh-image.jpg"
+#     image_processing(image_path)
 
-    return result_json
-
-def main():
-    image_path = "contoh-image.jpg"
-    image_processing(image_path)
-
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
