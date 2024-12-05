@@ -17,19 +17,18 @@ ENV PYTHONUNBUFFERED True
 
 # Set model directory environment variable
 ENV MODEL_PATH=/app/models
+ENV EASYOCR_MODULE_PATH=/app/models
 
 # Copy application dependency manifests to the container image.
-# Copying this separately prevents re-running pip install on every code change.
 COPY requirements.txt ./
 
 # Install production dependencies.
 RUN pip install -r requirements.txt
 
-# Pre-download EasyOCR models during build
-RUN python -c "import easyocr; reader = easyocr.Reader(['en', 'id'])"
-
-# Copy the downloaded models to a known location
-RUN mkdir -p /app/models && cp -r ~/.EasyOCR/* /app/models/
+# Pre-download EasyOCR models during build and copy directly to /app/models
+RUN mkdir -p /app/models && \
+    python -c "import easyocr; reader = easyocr.Reader(['en', 'id'])" && \
+    cp -r ~/.EasyOCR/* /app/models/
 
 # Copy local code to the container image.
 ENV APP_HOME /app
@@ -37,8 +36,4 @@ WORKDIR $APP_HOME
 COPY . ./
 
 # Run the web service on container startup.
-# Use gunicorn webserver with one worker process and 8 threads.
-# For environments with multiple CPU cores, increase the number of workers
-# to be equal to the cores available.
-# Timeout is set to 0 to disable the timeouts of the workers to allow Cloud Run to handle instance scaling.
 CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 main:app
