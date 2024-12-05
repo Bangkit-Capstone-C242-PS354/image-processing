@@ -299,15 +299,15 @@ def image_processing(image: Image.Image):
     # Clean and process the extracted data
     cleaned_result = clean_data(receipt_data)
 
-    # Load models and encoders
-    model_stage1 = load_model("model_stage1.h5")
-    model_stage2 = load_model("model_stage2.h5")
+    # Load models and encoders from the models directory
+    model_stage1 = load_model("models/model_stage1.h5")
+    model_stage2 = load_model("models/model_stage2.h5")
     
-    with open("char_to_idx.pkl", "rb") as file:
+    with open("models/char_to_idx.pkl", "rb") as file:
         char_to_idx = pickle.load(file)
-    with open("label_encoder_stage1.pkl", "rb") as file:
+    with open("models/label_encoder_stage1.pkl", "rb") as file:
         label_encoder_stage1 = pickle.load(file)
-    with open("label_encoder_stage2.pkl", "rb") as file:
+    with open("models/label_encoder_stage2.pkl", "rb") as file:
         label_encoder_stage2 = pickle.load(file)
 
     # Make predictions

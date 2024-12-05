@@ -1,5 +1,6 @@
-# Use the official Python image with slim variant
-FROM python:3.11-slim
+# Use the official Python image.
+# https://hub.docker.com/_/python
+FROM python:3.11
 
 # Install system dependencies required for OpenCV and other libraries
 RUN apt-get update && apt-get install -y \
@@ -12,32 +13,34 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Allow statements and log messages to immediately appear in the Cloud Run logs
-ENV PYTHONUNBUFFERED=True \
-    APP_HOME=/app \
-    EASYOCR_MODULE_PATH=/app/models \
-    MODULE_PATH=/app/models
+ENV PYTHONUNBUFFERED True
 
+# Set model directory environment variables
+ENV EASYOCR_MODULE_PATH=/app/models
+ENV MODULE_PATH=/app/models
+
+# Copy application dependency manifests to the container image.
+COPY requirements.txt ./
+
+# Install production dependencies.
+RUN pip install -r requirements.txt
+
+# Create necessary directories and pre-download EasyOCR models
+RUN mkdir -p /app/models && \
+    python -c "import easyocr; reader = easyocr.Reader(\
+        lang_list=['en', 'id'], \
+        gpu=False, \
+        model_storage_directory='/app/models', \
+        download_enabled=True, \
+        detector=True, \
+        recognizer=True)" && \
+    ls -la /app/models
+
+# Copy local code to the container image.
+ENV APP_HOME /app
 WORKDIR $APP_HOME
+COPY models/ ./models/
+COPY . ./
 
-# Copy requirements first to leverage Docker cache
-COPY requirements.txt .
-
-# Install production dependencies
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Create models directory
-RUN mkdir -p /app/models
-
-# Pre-download EasyOCR models in a separate layer
-RUN python -c "import easyocr; reader = easyocr.Reader(['en', 'id'], \
-    gpu=False, \
-    model_storage_directory='/app/models', \
-    download_enabled=True, \
-    detector=True, \
-    recognizer=True)"
-
-# Copy local code to the container image
-COPY src/ ./src/
-
-# Run the web service on container startup
-CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 src.main:app
+# Run the web service on container startup.
+CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 main:app
