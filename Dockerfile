@@ -28,7 +28,7 @@ RUN pip install -r requirements.txt
 # Create necessary directories and pre-download EasyOCR models
 RUN mkdir -p /app/models && \
     python -c "import easyocr; reader = easyocr.Reader(\
-        lang_list=['en'], \
+        lang_list=['en', 'id'], \
         gpu=False, \
         model_storage_directory='/app/models', \
         download_enabled=True, \

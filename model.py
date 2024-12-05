@@ -14,7 +14,7 @@ import os
 warnings.filterwarnings('ignore', category=UserWarning, message='Neither CUDA nor MPS are available.*')
 
 class EasyReceiptOCR:
-    def __init__(self, lang=['en']):
+    def __init__(self, lang=['en', 'id']):
         # Use the pre-downloaded models from the container
         model_dir = '/app/models'
         
