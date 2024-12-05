@@ -9,13 +9,24 @@ import pickle
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.models import load_model
 import warnings
+import os
 
 warnings.filterwarnings('ignore', category=UserWarning, message='Neither CUDA nor MPS are available.*')
 
 class EasyReceiptOCR:
     def __init__(self, lang=['en']):
-        # Initialize EasyOCR with specified languages
-        self.reader = easyocr.Reader(lang)
+        # Use /tmp directory for Cloud Run
+        model_dir = '/tmp/.EasyOCR'
+        os.makedirs(model_dir, exist_ok=True)
+        
+        try:
+            self.reader = easyocr.Reader(
+                lang,
+                model_storage_directory=model_dir,
+                download_enabled=True  # Explicitly enable downloading
+            )
+        except Exception as e:
+            raise Exception(f"EasyOCR initialization failed: {str(e)}")
 
     def preprocess_image2(self, image) -> np.ndarray:
         """
