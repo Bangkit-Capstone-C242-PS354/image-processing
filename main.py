@@ -19,12 +19,12 @@ def index():
         if not envelope:
             msg = "no Pub/Sub message received"
             logger.error(f"error: {msg}")
-            return jsonify({"error": msg}), 400
+            return jsonify({"error": msg, "success": False}), 200
 
         if not isinstance(envelope, dict) or "message" not in envelope:
             msg = "invalid Pub/Sub message format"
             logger.error(f"error: {msg}")
-            return jsonify({"error": msg}), 400
+            return jsonify({"error": msg, "success": False}), 200
 
         pubsub_message = envelope["message"]
         
@@ -43,7 +43,6 @@ def index():
                 # Download image from GCS
                 logger.info(f"Downloading image from GCS: {bucket}/{name}")
                 image = download_from_gcs(bucket, name)
-                return 
                 
                 # Process the image
                 logger.info("Starting image processing")
@@ -74,16 +73,24 @@ def index():
                 return jsonify(response_data), 200
                 
             except Exception as e:
-                logger.error(f"Processing error: {str(e)}", exc_info=True)
+                error_msg = f"Error processing image: {str(e)}"
+                logger.error(error_msg)
+                # Return 200 instead of 500 to acknowledge the message
                 return jsonify({
-                    "error": str(e),
+                    "error": error_msg,
+                    "success": False,
                     "bucket": bucket,
                     "name": name
-                }), 500
-    
+                }), 200
+        else:
+            msg = "Invalid message format: missing data field"
+            logger.error(f"error: {msg}")
+            return jsonify({"error": msg, "success": False}), 200
+            
     except Exception as e:
-        logger.error(f"Request handling error: {str(e)}", exc_info=True)
-        return jsonify({"error": str(e)}), 500
+        error_msg = f"Unexpected error: {str(e)}"
+        logger.error(error_msg)
+        return jsonify({"error": error_msg, "success": False}), 200
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
