@@ -43,6 +43,7 @@ def index():
                 # Download image from GCS
                 logger.info(f"Downloading image from GCS: {bucket}/{name}")
                 image = download_from_gcs(bucket, name)
+                return 
                 
                 # Process the image
                 logger.info("Starting image processing")
