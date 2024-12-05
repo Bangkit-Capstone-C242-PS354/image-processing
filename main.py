@@ -41,12 +41,16 @@ def index():
             
             try:
                 # Download image from GCS
+                logger.info(f"Downloading image from GCS: {bucket}/{name}")
                 image = download_from_gcs(bucket, name)
                 
                 # Process the image
+                logger.info("Starting image processing")
                 extracted_data = image_processing(image)
+                logger.info("Image processing completed successfully")
                 
                 # Save to Firestore
+                logger.info("Saving results to Firestore")
                 doc_id = save_to_firestore(
                     image_url=image_url,
                     extracted_data=extracted_data,
@@ -69,14 +73,16 @@ def index():
                 return jsonify(response_data), 200
                 
             except Exception as e:
-                error_msg = f"Error processing image: {str(e)}"
-                logger.error(error_msg)
-                return jsonify({"error": error_msg}), 500
+                logger.error(f"Processing error: {str(e)}", exc_info=True)
+                return jsonify({
+                    "error": str(e),
+                    "bucket": bucket,
+                    "name": name
+                }), 500
     
     except Exception as e:
-        error_msg = f"Error processing request: {str(e)}"
-        logger.error(error_msg)
-        return jsonify({"error": error_msg}), 500
+        logger.error(f"Request handling error: {str(e)}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)

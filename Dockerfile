@@ -15,12 +15,21 @@ RUN apt-get update && apt-get install -y \
 # Allow statements and log messages to immediately appear in the Cloud Run logs
 ENV PYTHONUNBUFFERED True
 
+# Set model directory environment variable
+ENV MODEL_PATH=/app/models
+
 # Copy application dependency manifests to the container image.
 # Copying this separately prevents re-running pip install on every code change.
 COPY requirements.txt ./
 
 # Install production dependencies.
 RUN pip install -r requirements.txt
+
+# Pre-download EasyOCR models during build
+RUN python -c "import easyocr; reader = easyocr.Reader(['en', 'id'])"
+
+# Copy the downloaded models to a known location
+RUN mkdir -p /app/models && cp -r ~/.EasyOCR/* /app/models/
 
 # Copy local code to the container image.
 ENV APP_HOME /app
