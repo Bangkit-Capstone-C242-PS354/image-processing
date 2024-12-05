@@ -15,18 +15,15 @@ warnings.filterwarnings('ignore', category=UserWarning, message='Neither CUDA no
 
 class EasyReceiptOCR:
     def __init__(self, lang=['en']):
-        # Use /tmp directory for Cloud Run
-        model_dir = '/tmp/.EasyOCR'
-        os.makedirs(model_dir, exist_ok=True)
+        # Use the pre-downloaded models from the container
+        model_dir = '/app/models'
         
-        try:
-            self.reader = easyocr.Reader(
-                lang,
-                model_storage_directory=model_dir,
-                download_enabled=True  # Explicitly enable downloading
-            )
-        except Exception as e:
-            raise Exception(f"EasyOCR initialization failed: {str(e)}")
+        # Initialize EasyOCR with specified languages and model directory
+        self.reader = easyocr.Reader(
+            lang,
+            model_storage_directory=model_dir,
+            download_enabled=False  # Disable downloading since we have the models
+        )
 
     def preprocess_image2(self, image) -> np.ndarray:
         """
