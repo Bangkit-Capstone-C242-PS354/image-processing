@@ -15,9 +15,9 @@ RUN apt-get update && apt-get install -y \
 # Allow statements and log messages to immediately appear in the Cloud Run logs
 ENV PYTHONUNBUFFERED True
 
-# Set model directory environment variable
-ENV MODEL_PATH=/app/models
+# Set model directory environment variables
 ENV EASYOCR_MODULE_PATH=/app/models
+ENV MODULE_PATH=/app/models
 
 # Copy application dependency manifests to the container image.
 COPY requirements.txt ./
@@ -25,10 +25,16 @@ COPY requirements.txt ./
 # Install production dependencies.
 RUN pip install -r requirements.txt
 
-# Pre-download EasyOCR models during build and copy directly to /app/models
+# Create necessary directories and pre-download EasyOCR models
 RUN mkdir -p /app/models && \
-    python -c "import easyocr; reader = easyocr.Reader(['en', 'id'])" && \
-    cp -r ~/.EasyOCR/* /app/models/
+    python -c "import easyocr; reader = easyocr.Reader(\
+        lang_list=['en'], \
+        gpu=False, \
+        model_storage_directory='/app/models', \
+        download_enabled=True, \
+        detector=True, \
+        recognizer=True)" && \
+    ls -la /app/models
 
 # Copy local code to the container image.
 ENV APP_HOME /app
