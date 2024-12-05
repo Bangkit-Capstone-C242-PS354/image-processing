@@ -8,6 +8,9 @@ import json
 import pickle
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.models import load_model
+import warnings
+
+warnings.filterwarnings('ignore', category=UserWarning, message='Neither CUDA nor MPS are available.*')
 
 class EasyReceiptOCR:
     def __init__(self, lang=['en']):
