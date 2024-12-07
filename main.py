@@ -13,11 +13,18 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-@lru_cache(maxsize=1000, typed=True)
+# Set to store currently processing images
+_processing = set()
+
 def was_recently_processed(bucket: str, name: str) -> bool:
-    """Check if an image was processed in the last 30 seconds."""
-    # First call for this image will return False (not processed)
-    # Subsequent calls within cache lifetime will return True
+    """Check if an image is currently being processed."""
+    key = f"{bucket}/{name}"
+    
+    if key in _processing:
+        logger.info(f"Caught duplicate (within 1ms) for {key}")
+        return True
+    
+    _processing.add(key)
     return False
 
 @app.route("/", methods=["POST"])
@@ -49,15 +56,11 @@ def index():
             # Extract relevant information
             bucket = event['bucket']
             name = event['name']
+            key = f"{bucket}/{name}"
             
-            # If this was recently processed, skip it
+            # If this is currently processing, skip it
             if was_recently_processed(bucket, name):
-                logger.info(f"Skipping duplicate processing for {bucket}/{name}")
                 return '', 204
-            
-            # Mark as processed by calling the function
-            was_recently_processed.cache_clear()  # Clear old entries
-            was_recently_processed(bucket, name)
             
             image_url = f"https://storage.googleapis.com/{bucket}/{name}"
             
@@ -106,6 +109,9 @@ def index():
                     "bucket": bucket,
                     "name": name
                 }), 200
+            finally:
+                # Always remove from processing set when done
+                _processing.discard(key)
         else:
             msg = "Invalid message format: missing data field"
             logger.error(f"error: {msg}")
