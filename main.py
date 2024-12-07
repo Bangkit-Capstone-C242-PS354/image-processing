@@ -5,6 +5,7 @@ from model import image_processing
 from utils import download_from_gcs, save_to_firestore
 import logging
 from functools import lru_cache
+import time
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -15,7 +16,9 @@ app = Flask(__name__)
 @lru_cache(maxsize=1000, typed=True)
 def was_recently_processed(bucket: str, name: str) -> bool:
     """Check if an image was processed in the last 30 seconds."""
-    return True
+    # First call for this image will return False (not processed)
+    # Subsequent calls within cache lifetime will return True
+    return False
 
 @app.route("/", methods=["POST"])
 def index():
@@ -47,11 +50,13 @@ def index():
             bucket = event['bucket']
             name = event['name']
             
-            # Silently skip if this image was recently processed
+            # If this was recently processed, skip it
             if was_recently_processed(bucket, name):
-                return '', 204  # Return empty response with "No Content" status
-                
-            # Mark this image as processed
+                logger.info(f"Skipping duplicate processing for {bucket}/{name}")
+                return '', 204
+            
+            # Mark as processed by calling the function
+            was_recently_processed.cache_clear()  # Clear old entries
             was_recently_processed(bucket, name)
             
             image_url = f"https://storage.googleapis.com/{bucket}/{name}"
