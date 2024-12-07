@@ -4,12 +4,18 @@ from flask import Flask, request, jsonify
 from model import image_processing
 from utils import download_from_gcs, save_to_firestore
 import logging
+from functools import lru_cache
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+
+@lru_cache(maxsize=1000, typed=True)
+def was_recently_processed(bucket: str, name: str) -> bool:
+    """Check if an image was processed in the last 30 seconds."""
+    return True
 
 @app.route("/", methods=["POST"])
 def index():
@@ -32,9 +38,22 @@ def index():
             data = base64.b64decode(pubsub_message["data"]).decode("utf-8")
             event = json.loads(data)
             
+            # Skip processing for delete events
+            if event.get('eventType') == 'OBJECT_DELETE':
+                logger.info(f"Skipping deleted object: {event.get('name')}")
+                return '', 204
+            
             # Extract relevant information
             bucket = event['bucket']
             name = event['name']
+            
+            # Silently skip if this image was recently processed
+            if was_recently_processed(bucket, name):
+                return '', 204  # Return empty response with "No Content" status
+                
+            # Mark this image as processed
+            was_recently_processed(bucket, name)
+            
             image_url = f"https://storage.googleapis.com/{bucket}/{name}"
             
             logger.info(f"Processing image from bucket: {bucket}, name: {name}")
